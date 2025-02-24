@@ -9,6 +9,8 @@ import time
 import random
 import cachetools
 import logging
+import asyncio
+from crawl4ai import AsyncWebCrawler
 from dotenv import load_dotenv
 
 # Initialize Groq client
@@ -72,15 +74,35 @@ def translate_text(text, target_language):
         return GoogleTranslator(source='en', target=LANGUAGES[target_language]).translate(text)
     return text
 
+async def fetch_news_from_crawl4ai(url):
+    """Fetches news using Crawl4AI."""
+    try:
+        async with AsyncWebCrawler() as crawler:
+            result = await crawler.arun(url=url)
+            return result.markdown
+    except Exception as e:
+        logger.error(f"Crawl4AI failed: {e}")
+        return None
+
 @cachetools.cached(cache)
 def fetch_news(query, genre, language):
-    """Fetches news from Google News and summarizes it."""
-    try:
+    """Fetches news from Crawl4AI first, and falls back to Google News if it fails."""
+    news_articles = []
+    
+    # Attempt Crawl4AI first
+    crawl4ai_url = f"https://www.news.google.com/search?q={query.replace(' ', '+')}"
+    news_content = asyncio.run(fetch_news_from_crawl4ai(crawl4ai_url))
+
+    if news_content:
+        articles = [{"headline": "Crawl4AI News", "summary": news_content, "reference": crawl4ai_url}]
+    else:
+        logger.info("Crawl4AI failed. Falling back to Google News.")
         news_articles = gn.get_news(query)
-        articles = []
+
         if news_articles:
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                 futures = [(article, executor.submit(summarize_with_groq, article.get('description', ''))) for article in news_articles[:5]]
+                articles = []
                 for article, summary_future in futures:
                     summary = summary_future.result()
                     headline = article.get('title', 'No Title')
@@ -99,10 +121,9 @@ def fetch_news(query, genre, language):
                         "views": random.randint(100, 10000)
                     })
         else:
-            articles.append({"headline": translate_text("No news found", language), "date": "", "summary": "", "reference": "", "thumbnail": "", "views": 0})
-        return articles
-    except Exception as e:
-        return [{"headline": translate_text(f"Error fetching news: {e}", language), "date": "", "summary": "", "reference": "", "thumbnail": "", "views": 0}]
+            articles = [{"headline": translate_text("No news found", language), "date": "", "summary": "", "reference": "", "thumbnail": "", "views": 0}]
+    
+    return articles
 
 def display_news(search_mode, keyword, location, genre, language):
     """Displays formatted news articles with sharing options."""
@@ -148,8 +169,7 @@ def update_inputs(search_mode):
 demo = gr.Blocks()
 with demo:
     gr.Markdown("# 📰 कलयुग पत्रिका")
-    gr.HTML("<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css'>")
-
+    
     search_mode = gr.Radio(label="Search Mode", choices=["Keyword Only", "Location + Genre"], value="Keyword Only")
     keyword_input = gr.Textbox(label="Keyword", placeholder="Enter a keyword")
     location_input = gr.Textbox(label="Location", placeholder="Enter location", visible=False)
@@ -159,7 +179,6 @@ with demo:
     fetch_button = gr.Button("Fetch News")
     output_html = gr.HTML()
 
-    search_mode.change(update_inputs, inputs=[search_mode], outputs=[keyword_input, location_input, genre_dropdown])
     fetch_button.click(display_news, inputs=[search_mode, keyword_input, location_input, genre_dropdown, language_dropdown], outputs=output_html)
 
 demo.launch()
