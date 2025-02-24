@@ -1,8 +1,9 @@
 # Kalyug Patrika
 
 Kalyug Patrika is an autonomous news agent that allows you to stay updated with the latest trending news in a summarized format. You can either enter specific **keywords** or choose a **location and genre** to explore the most relevant news available in the market. Additionally, Kalyug Patrika provides an option to **share news articles** with your loved ones on social media platforms.
-
-Live at:- https://huggingface.co/spaces/ayushraj0906/Kalyug_Patrika
+1. Final Website Link:- https://ayush09062004.github.io/Kalyug_Patrika_Live/
+2. Final Website Github Repo:- https://github.com/ayush09062004/Kalyug_Patrika_Live 
+3. Hugging Face Live at:- https://huggingface.co/spaces/ayushraj0906/Kalyug_Patrika
 
 ## Features
 - **Autonomous News Aggregation**: Fetches and summarizes the latest news articles automatically.
