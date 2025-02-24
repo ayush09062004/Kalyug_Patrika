@@ -12,7 +12,7 @@ import logging
 from dotenv import load_dotenv
 
 # Initialize Groq client
-GROQ_API_KEY = "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"  # Replace with your API key
+GROQ_API_KEY = "API Key"  # Replace with your API key
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 # Initialize Google News
