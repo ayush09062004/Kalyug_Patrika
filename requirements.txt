@@ -1,0 +1,6 @@
+gradio
+gnews
+groq
+deep-translator
+cachetools
+dotenv
